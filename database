@@ -1,0 +1,141 @@
+-- Librarian Table
+CREATE TABLE Librarian (
+  Librarian_ID INT PRIMARY KEY,
+  Name VARCHAR(50),
+  User_Name VARCHAR(50),
+  Password VARCHAR(50),
+  Role VARCHAR(50),
+  Status VARCHAR(50)
+);
+
+-- Students Table
+CREATE TABLE Students (
+  Student_ID INT PRIMARY KEY,
+  Name VARCHAR(50),
+  Email VARCHAR(50),
+  Password VARCHAR(50),
+  Reg_Date DATE,
+  Approval_Status VARCHAR(50),
+  Account_Status VARCHAR(50)
+);
+
+-- Books Table
+CREATE TABLE Books (
+  Book_ID INT PRIMARY KEY,
+  Title VARCHAR(100),
+  Author VARCHAR(50),
+  Category VARCHAR(50),
+  Total_Copies INT
+);
+
+-- Transactions Table (Book Issue/Return)
+CREATE TABLE Transactions (
+  Transaction_ID INT PRIMARY KEY,
+  Student_ID INT,
+  Book_ID INT,
+  Issue_Date DATE,
+  Return_Date DATE,
+  FOREIGN KEY (Student_ID) REFERENCES Students(Student_ID),
+  FOREIGN KEY (Book_ID) REFERENCES Books(Book_ID)
+);
+
+-- Approvals Table (Librarian approvals for students)
+CREATE TABLE Approvals (
+  Approval_ID INT PRIMARY KEY,
+  Student_ID INT,
+  Approval_Type VARCHAR(50),
+  Librarian_ID INT,
+  Status VARCHAR(50),
+  Approval_Date DATE,
+  FOREIGN KEY (Student_ID) REFERENCES Students(Student_ID),
+  FOREIGN KEY (Librarian_ID) REFERENCES Librarian(Librarian_ID)
+);
+
+-- ===============================================
+-- 3️⃣ Insert Sample Data
+-- ===============================================
+
+-- Librarians
+INSERT INTO Librarian (Librarian_ID, Name, User_Name, Password, Role, Status)
+VALUES
+(1, 'Ramesh', 'admin01', 'pass123', 'Librarian', 'Active'),
+(2, 'Suman', 'admin02', 'pass456', 'Librarian', 'Active');
+
+-- Students
+INSERT INTO Students (Student_ID, Name, Email, Password, Reg_Date, Approval_Status, Account_Status)
+VALUES
+(101, 'Ravi', 'ravi@gmail.com', 'passRavi', '2024-01-10', 'Approved', 'Active'),
+(102, 'Anita', 'anita@gmail.com', 'passAnita', '2024-02-05', 'Pending', 'Inactive'),
+(103, 'Kiran', 'kiran@gmail.com', 'passKiran', '2024-02-20', 'Rejected', 'Blocked');
+
+-- Books
+INSERT INTO Books (Book_ID, Title, Author, Category, Total_Copies)
+VALUES
+(1, 'SQL Basics', 'John Smith', 'Database', 5),
+(2, 'Python Programming', 'Alice Brown', 'Programming', 4),
+(3, 'Data Science Intro', 'Rahul Mehta', 'Analytics', 2);
+
+-- Transactions (Book Issue/Return)
+INSERT INTO Transactions (Transaction_ID, Student_ID, Book_ID, Issue_Date, Return_Date)
+VALUES
+(1001, 101, 1, '2024-03-01', '2024-03-10'),
+(1002, 101, 3, '2024-03-15', NULL),
+(1003, 102, 2, '2024-03-20', NULL);
+
+-- Approvals
+INSERT INTO Approvals (Approval_ID, Student_ID, Approval_Type, Librarian_ID, Status, Approval_Date)
+VALUES
+(1, 102, 'Registration', 1, 'Approved', '2024-02-06'),
+(2, 101, 'Late Return', 2, 'Approved', '2024-03-11'),
+(3, 103, 'Document Verification', 1, 'Rejected', '2024-02-21');
+
+-- ===============================================
+-- 4️⃣ Example Queries
+-- ===============================================
+
+-- A. Show all librarians
+SELECT * FROM Librarian;
+
+-- B. Show all students
+SELECT * FROM Students;
+
+-- C. Show all books
+SELECT * FROM Books;
+
+-- D. Show all transactions
+SELECT * FROM Transactions;
+
+-- E. Show all approvals
+SELECT * FROM Approvals;
+
+-- F. Books currently issued by a student (e.g., Ravi)
+SELECT b.Title, t.Issue_Date, t.Return_Date
+FROM Transactions t
+JOIN Books b ON t.Book_ID = b.Book_ID
+WHERE t.Student_ID = 101 AND t.Return_Date IS NULL;
+
+-- G. Pending approvals
+SELECT s.Name, a.Approval_Type, a.Status
+FROM Approvals a
+JOIN Students s ON a.Student_ID = s.Student_ID
+WHERE a.Status = 'Pending';
+
+-- H. Late returns (Return_Date is NULL and Issue_Date older than 14 days)
+SELECT s.Name, b.Title, t.Issue_Date
+FROM Transactions t
+JOIN Students s ON t.Student_ID = s.Student_ID
+JOIN Books b ON t.Book_ID = b.Book_ID
+WHERE t.Return_Date IS NULL AND t.Issue_Date <= DATE_SUB(CURDATE(), INTERVAL 14 DAY);
+
+-- I. Available books (not currently issued)
+SELECT b.Book_ID, b.Title, b.Total_Copies - COUNT(t.Transaction_ID) AS Available_Copies
+FROM Books b
+LEFT JOIN Transactions t ON b.Book_ID = t.Book_ID AND t.Return_Date IS NULL
+GROUP BY b.Book_ID, b.Title, b.Total_Copies;
+
+-- J. Student issue history
+SELECT s.Name, b.Title, t.Issue_Date, t.Return_Date
+FROM Transactions t
+JOIN Students s ON t.Student_ID = s.Student_ID
+JOIN Books b ON t.Book_ID = b.Book_ID
+ORDER BY s.Student_ID, t.Issue_Date;
